@@ -220,9 +220,13 @@ class OctomapWorld : public WorldBase {
   // Clears the current octomap and replaces it with one from the message.
   void setOctomapFromMsg(const octomap_msgs::Octomap& msg);
 
-  // Loading and writing to disk.
+  // Loading and writing to disk (full tree with probalities).
   bool loadOctomapFromFile(const std::string& filename);
-  bool writeOctomapToFile(const std::string& filename);
+  bool writeOctomapToFile(const std::string& filename) const;
+
+  // Loading and writing to disk (binaries tree without probalities).
+  bool loadOctomapFromFileBinary(const std::string& filename);
+  bool writeOctomapToFileBinary(const std::string& filename);
 
   // Writing binary octomap to stream
   bool writeOctomapToBinaryConst(std::ostream& s) const;

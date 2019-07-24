@@ -844,10 +844,18 @@ void OctomapWorld::setOctomapFromFullMsg(const octomap_msgs::Octomap& msg) {
 }
 
 bool OctomapWorld::loadOctomapFromFile(const std::string& filename) {
+  return octree_->read(filename);
+}
+
+bool OctomapWorld::writeOctomapToFile(const std::string& filename) const {
+  return octree_->write(filename);
+}
+
+bool OctomapWorld::loadOctomapFromFileBinary(const std::string& filename) {
   return octree_->readBinary(filename);
 }
 
-bool OctomapWorld::writeOctomapToFile(const std::string& filename) {
+bool OctomapWorld::writeOctomapToFileBinary(const std::string& filename) {
   return octree_->writeBinary(filename);
 }
 
