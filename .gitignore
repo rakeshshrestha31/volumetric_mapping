@@ -26,3 +26,9 @@
 *.exe
 *.out
 *.app
+
+# vim swap files
+*.swp
+*.swo
+*.swn
+*.swm
