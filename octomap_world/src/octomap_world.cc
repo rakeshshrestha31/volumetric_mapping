@@ -844,7 +844,10 @@ void OctomapWorld::setOctomapFromFullMsg(const octomap_msgs::Octomap& msg) {
 }
 
 bool OctomapWorld::loadOctomapFromFile(const std::string& filename) {
-  return octree_->read(filename);
+  octree_.reset(
+      dynamic_cast<octomap::OcTree*>(octomap::AbstractOcTree::read(filename))
+  );
+  return octree_.get();
 }
 
 bool OctomapWorld::writeOctomapToFile(const std::string& filename) const {

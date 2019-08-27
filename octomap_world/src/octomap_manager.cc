@@ -62,8 +62,12 @@ OctomapManager::OctomapManager(const ros::NodeHandle& nh,
   if (nh_private_.getParam("octomap_file", octomap_file)) {
     if (loadOctomapFromFile(octomap_file)) {
       ROS_INFO_STREAM(
-          "Successfully loaded octomap from path: " << octomap_file);
+          "Successfully loaded octomap from path: "
+          << octomap_file << std::endl
+          << "Num leaf nodes: "
+          << octree_->getNumLeafNodes());
       publishAll();
+
     } else {
       ROS_ERROR_STREAM("Could not load octomap from path: " << octomap_file);
     }
@@ -316,6 +320,8 @@ bool OctomapManager::loadOctomapCallback(
   std::string extension =
       request.file_path.substr(request.file_path.find_last_of(".") + 1);
   if (extension == "bt") {
+    return loadOctomapFromFileBinary(request.file_path);
+  } else if (extension == "ot") {
     return loadOctomapFromFile(request.file_path);
   } else {
     pcl::PointCloud<pcl::PointXYZ>::Ptr cloud(
