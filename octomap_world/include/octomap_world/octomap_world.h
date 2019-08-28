@@ -255,6 +255,7 @@ class OctomapWorld : public WorldBase {
                         std::vector<bool>* changed_states);
   void enableChangeDetection() { octree_->enableChangeDetection(true); }
   void disableChangeDetection() { octree_->enableChangeDetection(false); }
+  std::shared_ptr<const octomap::OcTree> getOctree() { return octree_; }
 
   void coordToKey(const Eigen::Vector3d& coord, octomap::OcTreeKey* key) const;
   void keyToCoord(const octomap::OcTreeKey& key, Eigen::Vector3d* coord) const;
