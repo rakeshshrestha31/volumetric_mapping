@@ -38,8 +38,10 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace volumetric_mapping {
 
-OctomapManager::OctomapManager(const ros::NodeHandle& nh,
-                               const ros::NodeHandle& nh_private)
+OctomapManager::OctomapManager(
+    const ros::NodeHandle& nh, const ros::NodeHandle& nh_private,
+    const std::shared_ptr<const octomap::OcTree>& init_octree/*=nullptr*/,
+    bool subscribe_topics/*=true*/)
     : nh_(nh),
       nh_private_(nh_private),
       world_frame_("world"),
@@ -52,14 +54,20 @@ OctomapManager::OctomapManager(const ros::NodeHandle& nh,
       full_image_size_(752, 480),
       map_publish_frequency_(0.0) {
   setParametersFromROS();
-  subscribe();
+  if (subscribe_topics) {
+    subscribe();
+  }
   advertiseServices();
   advertisePublishers();
 
   // After creating the manager, if the octomap_file parameter is set,
   // load the octomap at that path and publish it.
   std::string octomap_file;
-  if (nh_private_.getParam("octomap_file", octomap_file)) {
+  if (init_octree) {
+    // Copy constructor does deep copy
+    octree_.reset(new octomap::OcTree(*init_octree));
+    ROS_INFO("Loaded init octree");
+  } else if (nh_private_.getParam("octomap_file", octomap_file)) {
     if (loadOctomapFromFile(octomap_file)) {
       ROS_INFO_STREAM(
           "Successfully loaded octomap from path: "
@@ -67,7 +75,6 @@ OctomapManager::OctomapManager(const ros::NodeHandle& nh,
           << "Num leaf nodes: "
           << octree_->getNumLeafNodes());
       publishAll();
-
     } else {
       ROS_ERROR_STREAM("Could not load octomap from path: " << octomap_file);
     }
