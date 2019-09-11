@@ -84,7 +84,9 @@ void OctomapWorld::prune() { octree_->prune(); }
 void OctomapWorld::setOctomapParameters(const OctomapParameters& params) {
   if (octree_) {
     if (octree_->getResolution() != params.resolution) {
-      LOG(WARNING) << "Octomap resolution has changed! Resetting tree!";
+      LOG(WARNING) << "Octomap resolution has changed! Resetting tree!"
+                   << " Old: " << octree_->getResolution()
+                   << " New: " << params.resolution;
       octree_.reset(new octomap::OcTree(params.resolution));
     }
   } else {

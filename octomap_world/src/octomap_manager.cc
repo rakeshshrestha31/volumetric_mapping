@@ -56,8 +56,8 @@ OctomapManager::OctomapManager(
   setParametersFromROS();
   if (subscribe_topics) {
     subscribe();
+    advertiseServices();
   }
-  advertiseServices();
   advertisePublishers();
 
   // After creating the manager, if the octomap_file parameter is set,
