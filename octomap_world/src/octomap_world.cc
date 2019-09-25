@@ -46,6 +46,24 @@ Eigen::Vector3d pointOctomapToEigen(const octomap::point3d& point) {
   return Eigen::Vector3d(point.x(), point.y(), point.z());
 }
 
+/**
+ * Get bearing vectors of invalid points if available
+ * @detail Note: should use custom depth_image_proc2 for compatible point cloud
+ */
+void getInvalidPointsBearing(const pcl::PointCloud<pcl::PointXYZ>::Ptr& cloud,
+                             std::vector<octomap::point3d>& bearing_vectors) {
+  bearing_vectors.clear();
+  if (cloud) {
+    for (const auto &point: cloud->points) {
+      if (std::isfinite(point.x)
+          && std::isfinite(point.y)
+          && !std::isfinite(point.z)) {
+        bearing_vectors.emplace_back(point.x, point.y, 1.0f);
+      }
+    }
+  }
+}
+
 // Create a default parameters object and call the other constructor with it.
 OctomapWorld::OctomapWorld() : OctomapWorld(OctomapParameters()) {}
 
@@ -112,6 +130,12 @@ void OctomapWorld::getOctomapParameters(OctomapParameters* params) const {
 void OctomapWorld::insertPointcloudIntoMapImpl(
     const Transformation& T_G_sensor,
     const pcl::PointCloud<pcl::PointXYZ>::Ptr& cloud) {
+  // Get bearing vectors of invalid points if any.
+  std::vector<octomap::point3d> invalid_points_bearing;
+  getInvalidPointsBearing(cloud, invalid_points_bearing);
+  ROS_DEBUG_STREAM_THROTTLE(
+      2.0, "Num invalid points: " << invalid_points_bearing.size());
+
   // Remove NaN values, if any.
   std::vector<int> indices;
   pcl::removeNaNFromPointCloud(*cloud, *cloud, indices);
@@ -140,6 +164,8 @@ void OctomapWorld::insertPointcloudIntoMapImpl(
 
   // Apply the new free cells and occupied cells from
   updateOccupancy(&free_cells, &occupied_cells);
+  // Update unmappable keys
+  updateUnmappableKeys(invalid_points_bearing, &free_cells, &occupied_cells);
 }
 
 void OctomapWorld::insertProjectedDisparityIntoMapImpl(
@@ -263,6 +289,53 @@ void OctomapWorld::updateOccupancy(octomap::KeySet* free_cells,
     octree_->updateNode(*it, false);
   }
   octree_->updateInnerOccupancy();
+}
+
+void OctomapWorld::updateUnmappableKeys(
+    const std::vector<octomap::point3d>& unmappable_bearings,
+    const octomap::KeySet* const free_cells,
+    const octomap::KeySet* const occupied_cells) {
+
+  const std::array<const octomap::KeySet* const, 2> known_cell_groups = {
+    free_cells, occupied_cells
+  };
+
+  // remove known cells from unmappable set
+  for (const auto &known_cells: known_cell_groups) {
+    if (!known_cells) {
+      continue;
+    }
+    for (const auto &known_cell: *known_cells) {
+      if (unmappable_keys_.find(known_cell) != unmappable_keys_.end()) {
+        unmappable_keys_.erase(known_cell);
+      }
+    }
+  }
+
+  // adding unknown bearings
+  updateUnmappableKeys(unmappable_bearings);
+}
+
+void OctomapWorld::updateUnmappableKeys(
+    const std::vector<octomap::point3d>& unmappable_bearings) {
+  for (const auto &bearing_direction: unmappable_bearings) {
+    octomap::point3d end_point;
+    octomap::OcTreeKey end_point_key;
+
+    // the bearings are in robot's local coord frame
+    // (0, 0, 0) is the robot's current position
+    octree_->castRay(
+        octomap::point3d(0, 0, 0), bearing_direction, end_point,
+        /*ignoreUnknownCells=*/false, /*maxRange=*/params_.sensor_max_range);
+
+    // make sure that the end point is within range
+    // and unknown (not occupied)
+    if (octree_->coordToKeyChecked(end_point, end_point_key)
+        && !octree_->search(end_point_key)) {
+      unmappable_keys_.insert(end_point_key);
+    }
+  }
+  ROS_DEBUG_THROTTLE(2.0, "Unmappable keys: %ld", unmappable_keys_.size());
 }
 
 void OctomapWorld::enableTreatUnknownAsOccupied() {
@@ -427,8 +500,16 @@ OctomapWorld::CellStatus OctomapWorld::getVisibility(
   // Can't use the key_ray_ temp member here because this is a const function.
   octomap::KeyRay key_ray;
 
-  octree_->computeRayKeys(pointEigenToOctomap(view_point),
-                          pointEigenToOctomap(voxel_to_test), key_ray);
+  auto ray_cast_status =
+    octree_->computeRayKeys(pointEigenToOctomap(view_point),
+                            pointEigenToOctomap(voxel_to_test), key_ray);
+
+  if (!ray_cast_status) {
+    ROS_DEBUG_STREAM(
+        "unable to get visibility of " << view_point.transpose() << " to "
+                                       << voxel_to_test.transpose()
+    );
+  }
 
   const octomap::OcTreeKey& voxel_to_test_key =
       octree_->coordToKey(pointEigenToOctomap(voxel_to_test));
@@ -615,6 +696,17 @@ void OctomapWorld::getOccupiedPointCloud(
         }
       }
     }
+  }
+}
+
+void OctomapWorld::getUnmappablePointCloud(
+    pcl::PointCloud<pcl::PointXYZ>* output_cloud) const {
+  CHECK_NOTNULL(output_cloud)->clear();
+
+  for (const auto &key: unmappable_keys_) {
+    const auto coord = octree_->keyToCoord(key);
+    output_cloud->push_back(
+        pcl::PointXYZ(coord.x(), coord.y(), coord.z()));
   }
 }
 

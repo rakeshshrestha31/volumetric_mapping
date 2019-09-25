@@ -179,6 +179,9 @@ class OctomapWorld : public WorldBase {
       pcl::PointCloud<pcl::PointXYZ>* output_cloud,
       const BoundHandling& insertion_method = BoundHandling::kDefault) const;
 
+  virtual void getUnmappablePointCloud(
+      pcl::PointCloud<pcl::PointXYZ>* output_cloud) const;
+
   // Structure: vector of pairs, key is the cube center and double is the
   // dimension of each side.
   void getAllFreeBoxes(
@@ -321,6 +324,20 @@ class OctomapWorld : public WorldBase {
 
   std_msgs::ColorRGBA percentToColor(double h) const;
 
+  /**
+   * update unmappable keys (unmappable_keys_ member)
+   */
+  void updateUnmappableKeys(
+      const std::vector<octomap::point3d>& unmappable_bearings,
+      const octomap::KeySet* const free_cells,
+      const octomap::KeySet* const occupied_cells);
+
+  /**
+   * update unmappable keys (unmappable_keys_ member)
+   */
+  void updateUnmappableKeys(
+      const std::vector<octomap::point3d>& unmappable_bearings);
+
   std::shared_ptr<octomap::OcTree> octree_;
 
   OctomapParameters params_;
@@ -331,6 +348,11 @@ class OctomapWorld : public WorldBase {
   // Temporary variable for KeyRay since it resizes it to a HUGE value by
   // default. Thanks a lot to @xiaopenghuang for catching this.
   octomap::KeyRay key_ray_;
+
+  /**
+   * keys deemed unmappable
+   */
+  octomap::KeySet unmappable_keys_;
 };
 
 }  // namespace volumetric_mapping

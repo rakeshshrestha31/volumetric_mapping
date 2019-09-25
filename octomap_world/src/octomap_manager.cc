@@ -245,6 +245,9 @@ void OctomapManager::advertisePublishers() {
   nearest_obstacle_pub_ = nh_private_.advertise<sensor_msgs::PointCloud2>(
       "nearest_obstacle", 1, false);
 
+  pcl_unmappable_pub_ = nh_private_.advertise<sensor_msgs::PointCloud2>(
+      "unmappable_pcl", 1, latch_topics_);
+
   if (map_publish_frequency_ > 0.0) {
     map_publish_timer_ =
         nh_private_.createTimer(ros::Duration(1.0 / map_publish_frequency_),
@@ -282,6 +285,15 @@ void OctomapManager::publishAll() {
     pcl::toROSMsg(point_cloud, cloud);
     cloud.header.frame_id = world_frame_;
     pcl_pub_.publish(cloud);
+  }
+
+  if (latch_topics_ || pcl_unmappable_pub_.getNumSubscribers() > 0) {
+    pcl::PointCloud<pcl::PointXYZ> point_cloud;
+    getUnmappablePointCloud(&point_cloud);
+    sensor_msgs::PointCloud2 cloud;
+    pcl::toROSMsg(point_cloud, cloud);
+    cloud.header.frame_id = world_frame_;
+    pcl_unmappable_pub_.publish(cloud);
   }
 
   if (use_tf_transforms_ && nearest_obstacle_pub_.getNumSubscribers() > 0) {

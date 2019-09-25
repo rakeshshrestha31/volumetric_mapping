@@ -166,6 +166,9 @@ class OctomapManager : public OctomapWorld {
   ros::Publisher occupied_nodes_pub_;
   ros::Publisher free_nodes_pub_;
 
+  // Publish pcl for unmappable voxels
+  ros::Publisher pcl_unmappable_pub_;
+
   // Services!
   ros::ServiceServer reset_map_service_;
   ros::ServiceServer publish_all_service_;
