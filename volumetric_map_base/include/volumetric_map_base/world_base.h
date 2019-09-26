@@ -51,7 +51,7 @@ class WorldBase {
  public:
   typedef std::shared_ptr<WorldBase> Ptr;
 
-  enum CellStatus { kFree = 0, kOccupied = 1, kUnknown = 2 };
+  enum CellStatus { kFree = 0, kOccupied = 1, kUnknown = 2, kUnmappable = 3 };
 
   WorldBase() {}
   virtual ~WorldBase() {}

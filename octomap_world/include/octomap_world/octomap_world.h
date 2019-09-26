@@ -31,6 +31,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define OCTOMAP_WORLD_OCTOMAP_WORLD_H_
 
 #include <string>
+#include <mutex>
 
 #include <octomap/octomap.h>
 #include <octomap_msgs/Octomap.h>
@@ -168,7 +169,7 @@ class OctomapWorld : public WorldBase {
                                    const Eigen::Vector3d& end) const;
   virtual CellStatus getVisibility(const Eigen::Vector3d& view_point,
                                    const Eigen::Vector3d& voxel_to_test,
-                                   bool stop_at_unknown_cell) const;
+                                   bool stop_at_unknown_cell);
   virtual CellStatus getLineStatusBoundingBox(
       const Eigen::Vector3d& start, const Eigen::Vector3d& end,
       const Eigen::Vector3d& bounding_box_size) const;
@@ -180,7 +181,7 @@ class OctomapWorld : public WorldBase {
       const BoundHandling& insertion_method = BoundHandling::kDefault) const;
 
   virtual void getUnmappablePointCloud(
-      pcl::PointCloud<pcl::PointXYZ>* output_cloud) const;
+      pcl::PointCloud<pcl::PointXYZ>* output_cloud);
 
   // Structure: vector of pairs, key is the cube center and double is the
   // dimension of each side.
@@ -328,15 +329,22 @@ class OctomapWorld : public WorldBase {
    * update unmappable keys (unmappable_keys_ member)
    */
   void updateUnmappableKeys(
-      const std::vector<octomap::point3d>& unmappable_bearings,
+      const pcl::PointCloud<pcl::PointXYZ>& unmappable_bearings,
       const octomap::KeySet* const free_cells,
-      const octomap::KeySet* const occupied_cells);
+      const octomap::KeySet* const occupied_cells,
+      const Transformation& T_G_sensor);
 
   /**
    * update unmappable keys (unmappable_keys_ member)
    */
   void updateUnmappableKeys(
-      const std::vector<octomap::point3d>& unmappable_bearings);
+      const pcl::PointCloud<pcl::PointXYZ>& unmappable_bearings,
+      const Transformation& T_G_sensor);
+
+  /**
+   * get a copy of unmappable_keys_ member for thread safety
+   */
+  octomap::KeySet getUnmappableKeys();
 
   std::shared_ptr<octomap::OcTree> octree_;
 
@@ -353,6 +361,7 @@ class OctomapWorld : public WorldBase {
    * keys deemed unmappable
    */
   octomap::KeySet unmappable_keys_;
+  std::recursive_mutex unmappable_keys_mutex_;
 };
 
 }  // namespace volumetric_mapping

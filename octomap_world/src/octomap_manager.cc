@@ -57,8 +57,8 @@ OctomapManager::OctomapManager(
   if (subscribe_topics) {
     subscribe();
     advertiseServices();
+    advertisePublishers();
   }
-  advertisePublishers();
 
   // After creating the manager, if the octomap_file parameter is set,
   // load the octomap at that path and publish it.
