@@ -264,6 +264,16 @@ class OctomapWorld : public WorldBase {
   void coordToKey(const Eigen::Vector3d& coord, octomap::OcTreeKey* key) const;
   void keyToCoord(const octomap::OcTreeKey& key, Eigen::Vector3d* coord) const;
 
+  /**
+   * get a copy of unmappable_keys_ member for thread safety
+   */
+  octomap::KeySet getUnmappableKeys();
+
+  /**
+   * set unmappable_keys_ member (thread safe)
+   */
+  octomap::KeySet setUnmappableKeys(const octomap::KeySet &unmappable_keys);
+
  protected:
   // Actual implementation for inserting disparity data.
   virtual void insertProjectedDisparityIntoMapImpl(
@@ -340,11 +350,6 @@ class OctomapWorld : public WorldBase {
   void updateUnmappableKeys(
       const pcl::PointCloud<pcl::PointXYZ>& unmappable_bearings,
       const Transformation& T_G_sensor);
-
-  /**
-   * get a copy of unmappable_keys_ member for thread safety
-   */
-  octomap::KeySet getUnmappableKeys();
 
   std::shared_ptr<octomap::OcTree> octree_;
 

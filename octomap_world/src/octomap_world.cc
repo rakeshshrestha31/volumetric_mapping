@@ -768,6 +768,12 @@ octomap::KeySet OctomapWorld::getUnmappableKeys() {
   return unmappable_keys_;
 }
 
+octomap::KeySet OctomapWorld::setUnmappableKeys(
+    const octomap::KeySet &unmappable_keys) {
+  std::lock_guard<std::recursive_mutex> lock(unmappable_keys_mutex_);
+  return unmappable_keys_ = unmappable_keys;
+}
+
 void OctomapWorld::getOccupiedPointcloudInBoundingBox(
     const Eigen::Vector3d& center, const Eigen::Vector3d& bounding_box_size,
     pcl::PointCloud<pcl::PointXYZ>* output_cloud,
