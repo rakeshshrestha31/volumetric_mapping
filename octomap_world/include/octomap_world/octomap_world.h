@@ -270,9 +270,20 @@ class OctomapWorld : public WorldBase {
   octomap::KeySet getUnmappableKeys();
 
   /**
+   * get a copy of coordToKey of unmappable_keys_ member for thread safety
+   */
+  void getUnmappableCoords(std::vector<octomap::point3d> & unmappable_coords);
+
+  /**
    * set unmappable_keys_ member (thread safe)
    */
-  octomap::KeySet setUnmappableKeys(const octomap::KeySet &unmappable_keys);
+  void setUnmappableKeys(const octomap::KeySet &unmappable_keys);
+
+  /**
+   * set unmappable_keys_ member with given coords (thread safe)
+   */
+  void setUnmappableCoords(
+      const std::vector<octomap::point3d> & unmappable_coords);
 
  protected:
   // Actual implementation for inserting disparity data.

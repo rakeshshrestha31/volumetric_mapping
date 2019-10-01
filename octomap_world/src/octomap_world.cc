@@ -768,10 +768,31 @@ octomap::KeySet OctomapWorld::getUnmappableKeys() {
   return unmappable_keys_;
 }
 
-octomap::KeySet OctomapWorld::setUnmappableKeys(
+void OctomapWorld::getUnmappableCoords(
+    std::vector<octomap::point3d> & unmappable_coords) {
+  const auto unmappable_keys = getUnmappableKeys();
+  unmappable_coords.clear();
+  unmappable_coords.reserve(unmappable_keys.size());
+
+  for (const auto &key: unmappable_keys) {
+    unmappable_coords.push_back(octree_->keyToCoord(key));
+  }
+}
+
+void OctomapWorld::setUnmappableKeys(
     const octomap::KeySet &unmappable_keys) {
   std::lock_guard<std::recursive_mutex> lock(unmappable_keys_mutex_);
-  return unmappable_keys_ = unmappable_keys;
+  unmappable_keys_ = unmappable_keys;
+}
+
+void OctomapWorld::setUnmappableCoords(
+    const std::vector<octomap::point3d> & unmappable_coords) {
+  if (octree_) {
+    std::lock_guard<std::recursive_mutex> lock(unmappable_keys_mutex_);
+    for (const auto &coord: unmappable_coords) {
+      unmappable_keys_.insert(octree_->coordToKey(coord));
+    }
+  }
 }
 
 void OctomapWorld::getOccupiedPointcloudInBoundingBox(
