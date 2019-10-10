@@ -60,6 +60,7 @@ struct OctomapParameters {
         threshold_min(0.12),
         threshold_max(0.97),
         threshold_occupancy(0.7),
+        threshold_free(0.5),
         filter_speckles(true),
         max_free_space(0.0),
         min_height_free_space(0.0),
@@ -83,6 +84,8 @@ struct OctomapParameters {
   double threshold_max;
   // Threshold considered for a cell to be occupied.
   double threshold_occupancy;
+  // Threshold considered for a cell to be free.
+  double threshold_free;
 
   // Filter neighbor-less nodes as 'speckles'.
   bool filter_speckles;
@@ -169,7 +172,8 @@ class OctomapWorld : public WorldBase {
                                    const Eigen::Vector3d& end) const;
   virtual CellStatus getVisibility(const Eigen::Vector3d& view_point,
                                    const Eigen::Vector3d& voxel_to_test,
-                                   bool stop_at_unknown_cell);
+                                   bool stop_at_unknown_cell,
+                                   bool * const is_frontier=nullptr);
   virtual CellStatus getLineStatusBoundingBox(
       const Eigen::Vector3d& start, const Eigen::Vector3d& end,
       const Eigen::Vector3d& bounding_box_size) const;
@@ -264,6 +268,7 @@ class OctomapWorld : public WorldBase {
   void coordToKey(const Eigen::Vector3d& coord, octomap::OcTreeKey* key) const;
   void keyToCoord(const octomap::OcTreeKey& key, Eigen::Vector3d* coord) const;
 
+  void expandOcTree();
   /**
    * get a copy of unmappable_keys_ member for thread safety
    */

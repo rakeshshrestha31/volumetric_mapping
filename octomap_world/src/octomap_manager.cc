@@ -96,6 +96,8 @@ void OctomapManager::setParametersFromROS() {
                     params.threshold_max);
   nh_private_.param("threshold_occupancy", params.threshold_occupancy,
                     params.threshold_occupancy);
+  nh_private_.param("threshold_free", params.threshold_free,
+                    params.threshold_free);
   nh_private_.param("filter_speckles", params.filter_speckles,
                     params.filter_speckles);
   nh_private_.param("max_free_space", params.max_free_space,

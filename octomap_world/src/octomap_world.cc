@@ -497,6 +497,12 @@ OctomapWorld::CellStatus OctomapWorld::getCellProbabilityPoint(
       *probability = -1.0;
     }
     return CellStatus::kUnknown;
+  } else if (node->getOccupancy() > params_.threshold_free
+             && node->getOccupancy() < params_.threshold_occupancy) {
+    if (probability) {
+      *probability = node->getOccupancy();
+    }
+    return CellStatus::kUnknown;
   } else {
     if (probability) {
       *probability = node->getOccupancy();
@@ -536,7 +542,8 @@ OctomapWorld::CellStatus OctomapWorld::getLineStatus(
 
 OctomapWorld::CellStatus OctomapWorld::getVisibility(
     const Eigen::Vector3d& view_point, const Eigen::Vector3d& voxel_to_test,
-    bool stop_at_unknown_cell) {
+    bool stop_at_unknown_cell,
+    bool * const is_frontier/*=nullptr*/) {
   // Get all node keys for this line.
   // This is actually a typedef for a vector of OcTreeKeys.
   // Can't use the key_ray_ temp member here because this is a const function.
@@ -562,6 +569,9 @@ OctomapWorld::CellStatus OctomapWorld::getVisibility(
     return CellStatus::kUnmappable;
   }
 
+  if (is_frontier) {
+    *is_frontier = true;
+  }
   // Now check if there are any unknown or occupied nodes in the ray,
   // except for the voxel_to_test key.
   for (octomap::OcTreeKey key : key_ray) {
@@ -571,13 +581,27 @@ OctomapWorld::CellStatus OctomapWorld::getVisibility(
         return CellStatus::kUnmappable;
       }
       octomap::OcTreeNode* node = octree_->search(key);
+      bool is_unknown = false;
       if (node == NULL) {
+        is_unknown = true;
+      } else if (node->getOccupancy() > params_.threshold_occupancy) {
+        if (is_frontier) {
+          *is_frontier = false;
+        }
+        return CellStatus::kOccupied;
+      } else if (node->getOccupancy() > params_.threshold_free) {
+        // neither occupied, nor free. So unknown
+        is_unknown = true;
+      }
+
+      if (is_unknown) {
+        if (is_frontier) {
+          *is_frontier = false;
+        }
         if (stop_at_unknown_cell) {
           return CellStatus::kUnknown;
         }
-      } else if (octree_->isNodeOccupied(node)) {
-        return CellStatus::kOccupied;
-      }
+     }
     }
   }
   return CellStatus::kFree;
@@ -1642,4 +1666,11 @@ void OctomapWorld::keyToCoord(const octomap::OcTreeKey& key,
   *coord << position.x(), position.y(), position.z();
 }
 
+void OctomapWorld::expandOcTree() {
+  if (octree_) {
+    octree_->expand();
+  } else {
+    ROS_WARN("expandOcTree called on NULL octree");
+  }
+}
 }  // namespace volumetric_mapping
